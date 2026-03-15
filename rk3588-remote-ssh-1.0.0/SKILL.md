@@ -12,27 +12,45 @@ metadata: {"clawdbot":{"emoji":"🖥️","os":["darwin","linux"],"requires":{"bi
 
 ## 设备连接
 
+**使用此 skill 前，必须先获取设备连接信息。** 按以下优先级获取：
+
+1. 读取配置文件 `/workspace/config/device.conf`（格式见下文）
+2. 如果配置文件不存在，**向用户询问** IP、用户名、密码
+
+### 配置文件格式 (`/workspace/config/device.conf`)
+
 ```
-IP:   192.168.8.105
-用户: firefly
-密码: firefly
-端口: 22
+HOST=192.168.8.105
+USER=firefly
+PASS=firefly
+PORT=22
 ```
 
-### 快速连接
+### 连接信息占位符
+
+本 skill 中所有命令使用以下占位符，AI 在执行前**必须替换为实际值**：
+
+| 占位符 | 含义 | 示例 |
+|--------|------|------|
+| `{host}` | 设备 IP 地址 | `192.168.8.105` |
+| `{user}` | SSH 用户名 | `firefly` |
+| `{pass}` | SSH 密码 | `firefly` |
+| `{port}` | SSH 端口（默认 22） | `22` |
+
+### 快速连接模板
 
 ```bash
 # 单条命令
-sshpass -p 'firefly' ssh -o StrictHostKeyChecking=no firefly@192.168.8.105 '命令'
+sshpass -p '{pass}' ssh -o StrictHostKeyChecking=no -p {port} {user}@{host} '命令'
 
 # 多条命令（heredoc）
-sshpass -p 'firefly' ssh firefly@192.168.8.105 << 'EOF'
+sshpass -p '{pass}' ssh -p {port} {user}@{host} << 'EOF'
 命令1
 命令2
 EOF
 
 # 交互式会话（需保留终端时）
-sshpass -p 'firefly' ssh -t firefly@192.168.8.105
+sshpass -p '{pass}' ssh -t -p {port} {user}@{host}
 ```
 
 ---
@@ -44,7 +62,7 @@ sshpass -p 'firefly' ssh -t firefly@192.168.8.105
 ### 第一步：全面信息收集
 
 ```bash
-sshpass -p 'firefly' ssh firefly@192.168.8.105 << 'EOF'
+sshpass -p '{pass}' ssh -p {port} {user}@{host} << 'EOF'
 echo "========== 系统概览 =========="
 echo "主机: $(hostname)"
 echo "内核: $(uname -r) $(uname -m)"
@@ -108,7 +126,7 @@ EOF
 ### 诊断
 
 ```bash
-sshpass -p 'firefly' ssh firefly@192.168.8.105 << 'EOF'
+sshpass -p '{pass}' ssh {user}@{host} << 'EOF'
 echo "=== 网络接口 ==="
 ip link show
 echo ""
@@ -153,7 +171,7 @@ sudo ip link set eth0 down && sudo ip link set eth0 up
 sudo tee /etc/network/interfaces.d/eth0 > /dev/null << 'NET'
 auto eth0
 iface eth0 inet static
-    address 192.168.8.105
+    address {host}
     netmask 255.255.255.0
     gateway 192.168.8.1
     dns-nameservers 8.8.8.8
@@ -177,7 +195,7 @@ DNS
 ### 诊断
 
 ```bash
-sshpass -p 'firefly' ssh firefly@192.168.8.105 << 'EOF'
+sshpass -p '{pass}' ssh {user}@{host} << 'EOF'
 echo "=== 磁盘使用 ==="
 df -h
 echo ""
@@ -229,7 +247,7 @@ sudo fsck -y /dev/mmcblk2p2  # 根据实际分区调整
 ### 诊断
 
 ```bash
-sshpass -p 'firefly' ssh firefly@192.168.8.105 << 'EOF'
+sshpass -p '{pass}' ssh {user}@{host} << 'EOF'
 echo "=== 当前用户 ==="
 id
 echo ""
@@ -256,11 +274,11 @@ EOF
 
 ```bash
 # 添加串口权限
-sudo usermod -a -G dialout firefly
+sudo usermod -a -G dialout {user}
 
 # 添加 GPIO 权限
 sudo groupadd gpio 2>/dev/null
-sudo usermod -a -G gpio firefly
+sudo usermod -a -G gpio {user}
 sudo tee /etc/udev/rules.d/99-gpio.rules > /dev/null << 'UDEV'
 KERNEL=="gpiochip*", GROUP="gpio", MODE="0660"
 KERNEL=="gpio*", GROUP="gpio", MODE="0660"
@@ -268,14 +286,14 @@ UDEV
 sudo udevadm control --reload-rules && sudo udevadm trigger
 
 # 添加视频设备权限
-sudo usermod -a -G video firefly
+sudo usermod -a -G video {user}
 
 # 修复 sudoers
 sudo visudo -c  # 先检查语法
 
 # 修复文件权限
 sudo chmod 666 /dev/ttyS9
-sudo chown firefly:firefly /path/to/file
+sudo chown {user}:{user} /path/to/file
 ```
 
 ---
@@ -285,7 +303,7 @@ sudo chown firefly:firefly /path/to/file
 ### 诊断
 
 ```bash
-sshpass -p 'firefly' ssh firefly@192.168.8.105 << 'EOF'
+sshpass -p '{pass}' ssh {user}@{host} << 'EOF'
 SERVICE_NAME="目标服务名"  # 替换为实际服务名
 
 echo "=== 服务状态 ==="
@@ -327,7 +345,7 @@ systemctl --failed
 ### 诊断
 
 ```bash
-sshpass -p 'firefly' ssh firefly@192.168.8.105 << 'EOF'
+sshpass -p '{pass}' ssh {user}@{host} << 'EOF'
 echo "=== 内核版本 ==="
 uname -r
 echo ""
@@ -392,7 +410,7 @@ echo "模块名" | sudo tee /etc/modules-load.d/自定义.conf
 ### 诊断
 
 ```bash
-sshpass -p 'firefly' ssh firefly@192.168.8.105 << 'EOF'
+sshpass -p '{pass}' ssh {user}@{host} << 'EOF'
 echo "=== CPU 使用 TOP15 ==="
 top -bn1 -o %CPU | head -20
 echo ""
@@ -449,7 +467,7 @@ sudo cgexec -g cpu:/限制组 命令
 ### 诊断
 
 ```bash
-sshpass -p 'firefly' ssh firefly@192.168.8.105 << 'EOF'
+sshpass -p '{pass}' ssh {user}@{host} << 'EOF'
 echo "=== 可更新包 ==="
 apt list --upgradable 2>/dev/null | head -20
 echo ""
@@ -504,7 +522,7 @@ dpkg -L 包名
 ### 诊断
 
 ```bash
-sshpass -p 'firefly' ssh firefly@192.168.8.105 << 'EOF'
+sshpass -p '{pass}' ssh {user}@{host} << 'EOF'
 echo "=== 系统日志（最近错误）==="
 journalctl -p err --no-pager --since "1 hour ago" 2>/dev/null | tail -30
 
@@ -534,13 +552,13 @@ EOF
 
 ```bash
 # 实时跟踪系统日志
-sshpass -p 'firefly' ssh firefly@192.168.8.105 'sudo journalctl -f'
+sshpass -p '{pass}' ssh {user}@{host} 'sudo journalctl -f'
 
 # 实时跟踪内核日志
-sshpass -p 'firefly' ssh firefly@192.168.8.105 'sudo dmesg -w'
+sshpass -p '{pass}' ssh {user}@{host} 'sudo dmesg -w'
 
 # 实时跟踪特定服务
-sshpass -p 'firefly' ssh firefly@192.168.8.105 'sudo journalctl -u 服务名 -f'
+sshpass -p '{pass}' ssh {user}@{host} 'sudo journalctl -u 服务名 -f'
 ```
 
 ---
@@ -550,7 +568,7 @@ sshpass -p 'firefly' ssh firefly@192.168.8.105 'sudo journalctl -u 服务名 -f'
 ### 诊断
 
 ```bash
-sshpass -p 'firefly' ssh firefly@192.168.8.105 << 'EOF'
+sshpass -p '{pass}' ssh {user}@{host} << 'EOF'
 echo "=== 开机耗时 ==="
 systemd-analyze 2>/dev/null
 echo ""
@@ -593,8 +611,8 @@ After=network.target
 
 [Service]
 Type=simple
-User=firefly
-ExecStart=/home/firefly/脚本.sh
+User={user}
+ExecStart=/home/{user}/脚本.sh
 Restart=on-failure
 
 [Install]
@@ -611,7 +629,7 @@ sudo systemctl enable --now custom
 不指定问题时的通用检查脚本：
 
 ```bash
-sshpass -p 'firefly' ssh firefly@192.168.8.105 << 'EOF'
+sshpass -p '{pass}' ssh {user}@{host} << 'EOF'
 PASS=0; WARN=0; FAIL=0
 report() { if [ "$1" = "ok" ]; then PASS=$((PASS+1)); echo "  [OK]   $2"; elif [ "$1" = "warn" ]; then WARN=$((WARN+1)); echo "  [WARN] $2"; else FAIL=$((FAIL+1)); echo "  [FAIL] $2"; fi; }
 
@@ -658,12 +676,12 @@ systemctl is-active sshd >/dev/null 2>&1 && report ok "SSH 服务运行" || repo
 echo ""
 echo "[串口]"
 [ -c /dev/ttyS9 ] && report ok "ttyS9 存在" || report warn "ttyS9 不存在"
-groups firefly | grep -q dialout && report ok "串口权限正常" || report warn "无 dialout 权限"
+groups {user} | grep -q dialout && report ok "串口权限正常" || report warn "无 dialout 权限"
 
 echo ""
 echo "[GPIO]"
 gpiodetect >/dev/null 2>&1 && report ok "libgpiod 可用" || report warn "libgpiod 不可用"
-groups firefly | grep -q gpio && report ok "GPIO 权限正常" || report warn "无 gpio 组权限"
+groups {user} | grep -q gpio && report ok "GPIO 权限正常" || report warn "无 gpio 组权限"
 
 echo ""
 echo "═══════════════════════════════════════"
@@ -679,7 +697,7 @@ EOF
 修复后必须验证：
 
 ```bash
-sshpass -p 'firefly' ssh firefly@192.168.8.105 << 'EOF'
+sshpass -p '{pass}' ssh {user}@{host} << 'EOF'
 # 替换为验证修复效果的具体命令
 echo "验证修复结果..."
 EOF

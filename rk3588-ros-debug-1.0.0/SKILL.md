@@ -1,12 +1,57 @@
 ---
 name: rk3588-ros-debug
-description: RK3588 远程开发调试循环。自动完成 容器编译 → 板子部署 → 远程运行 → 日志抓取 → 问题分析 → 代码修复 → 重新编译 的完整闭环。
+description: RK3588 远程开发调试循环（通用 ROS）。自动完成 容器编译 → 板子部署 → 远程运行 → 日志抓取 → 问题分析 → 代码修复 → 重新编译 的完整闭环。适用于任意 ROS 功能包。
 metadata: {"clawdbot":{"emoji":"🔧","os":["darwin","linux"],"requires":{"bins":["ssh","rsync"]}}}
 ---
 
-# RK3588 远程开发调试循环
+# RK3588 远程开发调试循环（通用 ROS）
 
-在 VSCode Dev Container 内完成 **编译 → 部署 → 运行 → 调试 → 修复** 的完整闭环。
+在 VSCode Dev Container 内完成 **编译 → 部署 → 运行 → 调试 → 修复** 的完整闭环，适用于任意 ROS (catkin) 功能包。
+
+---
+
+## 设备连接
+
+**使用此 skill 前，必须先获取设备连接信息。** 按以下优先级获取：
+
+1. 读取配置文件 `/workspace/config/device.conf`（格式见下文）
+2. 如果配置文件不存在，**向用户询问** IP、用户名、密码
+
+### 配置文件格式 (`/workspace/config/device.conf`)
+
+```
+HOST=192.168.8.105
+USER=firefly
+PASS=firefly
+PORT=22
+```
+
+### 连接信息占位符
+
+本 skill 中所有命令使用以下占位符，AI 在执行前**必须替换为实际值**：
+
+| 占位符 | 含义 | 示例 |
+|--------|------|------|
+| `{host}` | 设备 IP 地址 | `192.168.8.105` |
+| `{user}` | SSH 用户名 | `firefly` |
+| `{pass}` | SSH 密码 | `firefly` |
+| `{port}` | SSH 端口（默认 22） | `22` |
+
+### 连接命令模板
+
+```bash
+# 单条命令
+sshpass -p '{pass}' ssh -o StrictHostKeyChecking=no -p {port} {user}@{host} '命令'
+
+# 多条命令（heredoc）
+sshpass -p '{pass}' ssh -p {port} {user}@{host} << 'EOF'
+命令1
+命令2
+EOF
+
+# rsync 部署
+sshpass -p '{pass}' rsync -avz -e "ssh -p {port}" 源路径 {user}@{host}:目标路径
+```
 
 ---
 
@@ -17,10 +62,10 @@ metadata: {"clawdbot":{"emoji":"🔧","os":["darwin","linux"],"requires":{"bins"
 │ macOS 宿主机                                     │
 │ └── VSCode Dev Container (ARM64, /workspace)    │
 │       ├── 编译: catkin_make → /workspace/devel   │
-│       └── 部署: rsync → firefly@192.168.8.105    │
+│       └── 部署: rsync → {user}@{host}            │
 │                                                 │
-│ RK3588 板子 (192.168.8.105, firefly/firefly)    │
-│   └── ~/ros_ws (部署目标, 运行 timesync_node)    │
+│ 目标设备 ({host}, {user}/{pass})                │
+│   └── ~/ros_ws (部署目标)                        │
 └─────────────────────────────────────────────────┘
 ```
 
@@ -30,27 +75,21 @@ metadata: {"clawdbot":{"emoji":"🔧","os":["darwin","linux"],"requires":{"bins"
 |------|------|
 | 容器工作区 | `/workspace` |
 | 容器编译产物 | `/workspace/devel` |
-| 板子部署目标 | `/home/firefly/ros_ws` |
-| 板子节点日志 | `/tmp/timesync.log` |
+| 板子部署目标 | `/home/{user}/ros_ws` |
+| 板子运行日志 | `/tmp/ros_node.log` |
 | 设备配置 | `/workspace/config/device.conf` |
 
-### 项目源码结构
+### ROS 项目参数
 
-```
-/workspace/src/timesync/
-├── src/
-│   ├── TimeSyncNode.cpp       # 主节点 (main, 参数加载, 回调, 发布)
-│   ├── PpsCapture.cpp         # GPIO 1PPS 信号捕获 (libgpiod)
-│   ├── MavlinkReceiver.cpp    # 串口 MAVLink 解析
-│   └── TimeSynchronizer.cpp   # 时间偏移平滑滤波
-├── include/timesync/
-│   ├── TimeSyncNode.hpp
-│   ├── PpsCapture.hpp
-│   ├── MavlinkReceiver.hpp
-│   └── TimeSynchronizer.hpp
-├── launch/timesync.launch     # ROS launch 配置
-└── CMakeLists.txt
-```
+每次调试会话前，**还需确认**以下信息（从项目代码、launch 文件或用户输入中获取）：
+
+| 参数 | 说明 | 示例 |
+|------|------|------|
+| `{package}` | ROS 功能包名 | `my_robot` |
+| `{launch_file}` | launch 文件相对路径 | `my_robot.launch` |
+| `{nodes}` | 节点可执行文件名 | `my_node`、`driver_node` |
+| `{topics}` | 关键 topic（用于验证） | `/sensor/data`、`/cmd_vel` |
+| `{log_file}` | 日志输出路径 | `/tmp/ros_node.log` |
 
 ---
 
@@ -70,43 +109,54 @@ cd /workspace && source /opt/ros/noetic/setup.bash && catkin_make 2>&1 | tail -3
 - 分析编译错误信息（缺少头文件、类型不匹配、链接错误等）
 - 直接修复源码，然后重新编译
 - 常见问题速查:
-  - `fatal error: mavlink.h` → 检查 mavlink 子模块: `git submodule update --init --recursive`
+  - `fatal error: xxx.h` → 安装缺失依赖: `sudo apt-get install ros-noetic-xxx libxxx-dev`
   - `undefined reference` → 检查 CMakeLists.txt 的链接依赖
-  - `gpiod.h not found` → 容器内执行: `sudo apt-get install libgpiod-dev`
+  - `Could not find package` → 检查 `package.xml` 依赖声明、`catkin_pkg` 配置
+  - 子模块缺失 → `git submodule update --init --recursive`
 
 **编译成功标志:**
 ```
-[100%] Built target timesync_node
+[100%] Built target {node_name}
 ```
 
 ### STEP 2: 部署
 
-将编译产物 rsync 到 RK3588 板子。
+将编译产物 rsync 到目标设备。
 
 ```bash
 cd /workspace && ./scripts/deploy.sh 2>&1 | tail -20
 ```
 
+**如果项目没有 deploy 脚本，使用通用部署命令:**
+```bash
+sshpass -p '{pass}' rsync -avz -e "ssh -p {port}" --delete \
+  --exclude='build' --exclude='.git' \
+  /workspace/devel/ {user}@{host}:~/ros_ws/devel/ 2>&1 | tail -10
+
+sshpass -p '{pass}' rsync -avz -e "ssh -p {port}" \
+  /workspace/src/{package}/ {user}@{host}:~/ros_ws/src/{package}/ 2>&1 | tail -10
+```
+
 **部署失败处理:**
-- SSH 不通 → `ping 192.168.8.105`，检查网线/USB
+- SSH 不通 → `ping {host}`，检查网线/USB
 - sshpass 缺失 → `sudo apt-get install sshpass`（容器内）
-- rsync 权限问题 → 检查板子目标目录权限
-- 板子磁盘满 → `ssh firefly@192.168.8.105 'df -h /'`
+- rsync 权限问题 → 检查设备目标目录权限
+- 设备磁盘满 → `sshpass -p '{pass}' ssh {user}@{host} 'df -h /'`
 
 ### STEP 3: 远程运行
 
-SSH 到板子，停掉旧节点，启动新节点，捕获日志。
+SSH 到设备，停掉旧节点，启动新节点，捕获日志。
 
 ```bash
-sshpass -p 'firefly' ssh -o StrictHostKeyChecking=no firefly@192.168.8.105 << 'EOF'
-# 杀掉旧进程
-pkill -f timesync_node 2>/dev/null; sleep 1
+sshpass -p '{pass}' ssh -o StrictHostKeyChecking=no -p {port} {user}@{host} << 'EOF'
+# 杀掉旧进程（替换 {nodes} 为实际节点名）
+pkill -f {nodes} 2>/dev/null; sleep 1
 
 # source 环境
-source /home/firefly/ros_ws/devel/setup.bash
+source /home/{user}/ros_ws/devel/setup.bash
 
 # 启动节点，日志写入文件（后台运行 15 秒自动终止）
-timeout 15 roslaunch timesync timesync.launch 2>&1 | tee /tmp/timesync.log &
+timeout 15 roslaunch {package} {launch_file} 2>&1 | tee /tmp/ros_node.log &
 LAUNCH_PID=$!
 
 # 等待启动
@@ -115,7 +165,7 @@ sleep 5
 # 输出当前日志
 echo ""
 echo "===== LOG OUTPUT ====="
-cat /tmp/timesync.log
+cat /tmp/ros_node.log
 
 # 等待更多数据
 sleep 10
@@ -123,7 +173,7 @@ sleep 10
 # 补充新日志
 echo ""
 echo "===== MORE LOG ====="
-tail -50 /tmp/timesync.log
+tail -50 /tmp/ros_node.log
 
 # 确保进程结束
 kill $LAUNCH_PID 2>/dev/null
@@ -135,106 +185,96 @@ EOF
 ```
 
 **运行时长调整:**
-- 快速检查（10 秒）: 适合验证节点是否启动、参数是否正确
-- 中等（30 秒）: 适合检查 PPS 脉冲捕获、MAVLink 通信
-- 长时间（120 秒）: 适合检查时间同步稳定性、IMU 数据连续性
+- 快速检查（10 秒）: 验证节点启动、参数加载
+- 中等（30 秒）: 检查传感器数据、通信稳定性
+- 长时间（120 秒）: 检查长时间运行的稳定性、数据连续性
+
+**直接运行单个节点（不使用 launch 文件）:**
+```bash
+timeout 15 rosrun {package} {node_executable} _param1:=value1 2>&1 | tee /tmp/ros_node.log
+```
 
 ### STEP 4: 日志分析
 
-从板子拉取完整日志并分析。根据日志中的关键模式判断状态：
+从设备拉取完整日志并分析。
 
 ```bash
-sshpass -p 'firefly' ssh firefly@192.168.8.105 'cat /tmp/timesync.log'
+sshpass -p '{pass}' ssh {user}@{host} 'cat /tmp/ros_node.log'
 ```
 
-#### 日志模式识别表
+#### 通用日志分析要点
 
-| 日志模式 | 含义 | 状态 |
-|---------|------|------|
-| `PPS: GPIO capture started on /dev/gpiochip3 line 28` | GPIO 初始化成功 | ✅ 正常 |
-| `PPS: *** FIRST PULSE CAPTURED ***` | 收到第一个 PPS 脉冲 | ✅ 正常 |
-| `PPS: Pulse #   N \| RISING edge \| interval=1.0000XX sec` | PPS 信号稳定 | ✅ 正常 |
-| `MAVLink: Serial port /dev/ttyS9 opened at 230400 baud` | 串口打开成功 | ✅ 正常 |
-| `MAVLink TIMESYNC: tc1=XXXXXX us` | 收到 TIMESYNC 消息 | ✅ 正常 |
-| `has_sync: 1` | 时间同步已建立 | ✅ 正常 |
-| `IMU: Not synchronized yet, using ROS time` | PPS 未同步，用 ROS 时间 | ⚠️ 等待 |
-| `PPS: Failed to open GPIO chip` | GPIO 设备打开失败 | ❌ 需修复 |
-| `MAVLink: Failed to open serial port` | 串口打开失败 | ❌ 需修复 |
-| `Exception: XXX` | 程序异常崩溃 | ❌ 需修复 |
-| `PPS interval` 偏离 1.0 秒较多（>0.01s） | PPS 信号不稳定 | ⚠️ 检查接线 |
-| `Raw offset` 持续跳变 >100us | 时间同步不稳定 | ⚠️ 检查算法 |
+1. **启动检查**: 节点是否成功初始化，参数是否正确加载
+2. **设备/驱动**: 串口、GPIO、USB、网络等设备是否打开成功
+3. **数据流**: topic 是否有数据发布，频率是否正常
+4. **错误/异常**: Exception、Error、Fatal、Failed 等关键字
+5. **资源**: 内存泄漏、CPU 过载、文件描述符耗尽
 
-#### 详细诊断命令
+#### ROS 诊断命令
 
-当发现问题后，执行针对性诊断：
-
-**GPIO 问题诊断:**
+**查看节点和 topic 状态:**
 ```bash
-sshpass -p 'firefly' ssh firefly@192.168.8.105 << 'EOF'
-echo "=== GPIO 诊断 ==="
-gpiodetect
+sshpass -p '{pass}' ssh {user}@{host} << 'EOF'
+source /home/{user}/ros_ws/devel/setup.bash
+echo "=== 运行中的节点 ==="
+rosnode list 2>/dev/null || echo "无节点运行"
 echo ""
-gpioinfo gpiochip3 2>/dev/null | grep -A1 "line 28"
+echo "=== Topic 列表 ==="
+rostopic list 2>/dev/null || echo "无 topic"
 echo ""
-echo "GPIO 设备权限:"
-ls -la /dev/gpiochip3
+echo "=== 关键 topic 频率 ==="
+timeout 5 rostopic hz {topic} --window 10 2>&1 || echo "无数据"
 echo ""
-echo "用户组:"
-groups firefly
+echo "=== 关键 topic 内容 ==="
+rostopic echo {topic} -n 3 2>/dev/null || echo "无数据"
 echo ""
-echo "实时监控 3 秒:"
-timeout 3 sudo gpiomon --format="%s.%n %e" gpiochip3 28 2>&1 || echo "监控失败"
+echo "=== 节点详情 ==="
+rosnode info /{node_name} 2>/dev/null || echo "节点未运行"
 EOF
 ```
 
-**串口问题诊断:**
+**设备诊断（根据项目实际使用的设备选择）:**
 ```bash
-sshpass -p 'firefly' ssh firefly@192.168.8.105 << 'EOF'
-echo "=== 串口诊断 ==="
-ls -l /dev/ttyS9 2>/dev/null || echo "ttyS9 不存在"
+sshpass -p '{pass}' ssh {user}@{host} << 'EOF'
+echo "=== 串口设备 ==="
+ls -la /dev/ttyS* /dev/ttyUSB* /dev/ttyACM* 2>/dev/null
+groups {user} | grep -o dialout && echo "有 dialout 权限" || echo "无 dialout 权限"
 echo ""
-echo "串口设备列表:"
-ls /dev/ttyS* 2>/dev/null
-echo ""
-echo "串口权限:"
-groups firefly | grep -o dialout && echo "有 dialout 权限" || echo "无 dialout 权限"
-echo ""
-echo "串口占用:"
-fuser /dev/ttyS9 2>/dev/null || echo "串口空闲"
-echo ""
-echo "原始数据采样 (3 秒):"
-timeout 3 sudo hexdump -C /dev/ttyS9 2>&1 | head -20 || echo "无数据"
-EOF
-```
 
-**ROS Topic 检查:**
-```bash
-sshpass -p 'firefly' ssh firefly@192.168.8.105 << 'EOF'
-source /home/firefly/ros_ws/devel/setup.bash
-echo "=== ROS Topics ==="
-rostopic list 2>/dev/null
+echo "=== GPIO 设备 ==="
+ls -la /dev/gpiochip* 2>/dev/null
+gpiodetect 2>/dev/null || echo "libgpiod 不可用"
 echo ""
-echo "=== IMU 频率 (5 秒采样) ==="
-timeout 5 rostopic hz /timesync/imu/data --window 10 2>&1 || echo "无 IMU 数据"
+
+echo "=== USB 设备 ==="
+lsusb 2>/dev/null
 echo ""
-echo "=== 时间偏移 ==="
-rostopic echo /timesync/sync_offset_us -n 3 2>/dev/null || echo "无偏移数据"
+
+echo "=== 视频设备 ==="
+ls -la /dev/video* 2>/dev/null || echo "无视频设备"
+echo ""
+
+echo "=== 网络设备 ==="
+ip -4 addr show | grep -E "inet |^[0-9]" | head -10
 EOF
 ```
 
 **系统资源检查:**
 ```bash
-sshpass -p 'firefly' ssh firefly@192.168.8.105 << 'EOF'
+sshpass -p '{pass}' ssh {user}@{host} << 'EOF'
 echo "=== 系统状态 ==="
 free -h | head -2
 echo ""
 uptime
 echo ""
-echo "timesync_node 进程:"
-ps aux | grep timesync | grep -v grep || echo "未运行"
+echo "节点进程:"
+ps aux | grep -E "{nodes}" | grep -v grep || echo "未运行"
 echo ""
 echo "CPU 温度:"
 cat /sys/class/thermal/thermal_zone0/temp 2>/dev/null | awk '{printf "%.1f°C\n", $1/1000}' || echo "N/A"
+echo ""
+echo "磁盘空间:"
+df -h / | tail -1
 EOF
 ```
 
@@ -242,22 +282,7 @@ EOF
 
 根据日志分析结果，定位问题并修改代码。
 
-#### 问题 → 代码定位映射
-
-| 问题类型 | 关键文件 | 修改点 |
-|---------|---------|--------|
-| GPIO 打开失败 | `src/PpsCapture.cpp` | chip_device 或 line_offset |
-| PPS 信号未捕获 | `src/PpsCapture.cpp` | captureLoop() 事件监听 |
-| 串口打开失败 | `src/MavlinkReceiver.cpp` | 串口设备路径、波特率 |
-| MAVLink 解析错误 | `src/MavlinkReceiver.cpp` | 消息解析逻辑 |
-| 时间偏移过大 | `src/TimeSynchronizer.cpp` | 平滑算法 alpha 参数 |
-| IMU 时间戳不准 | `src/TimeSyncNode.cpp:142-150` | `getSynchronizedTimestamp()` |
-| 参数配置错误 | `launch/timesync.launch` | param 值 |
-| 编译链接错误 | `CMakeLists.txt` | 依赖、库路径 |
-
-#### 修复后回到 STEP 1
-
-修改代码后立即执行 `catkin_make` 重新编译，进入下一轮循环。
+修复后回到 STEP 1，重新编译部署。
 
 ---
 
@@ -266,41 +291,52 @@ EOF
 ### 一键诊断（不运行节点）
 
 ```bash
-sshpass -p 'firefly' ssh firefly@192.168.8.105 << 'EOF'
-echo "[GPIO] $(gpiodetect 2>/dev/null | grep gpiochip3 && echo 'OK' || echo 'FAIL')"
-echo "[TTY]  $(ls /dev/ttyS9 2>/dev/null && echo 'OK' || echo 'FAIL')"
+sshpass -p '{pass}' ssh {user}@{host} << 'EOF'
+echo "[网络] $(ping -c 1 -W 2 8.8.8.8 >/dev/null 2>&1 && echo 'OK' || echo 'FAIL')"
 echo "[WS]   $(test -f ~/ros_ws/devel/setup.bash && echo 'OK' || echo 'FAIL')"
 echo "[MEM]  $(free -h | awk '/Mem:/{print $3"/"$2}')"
 echo "[TEMP] $(awk '{printf "%.0f°C",$1/1000}' /sys/class/thermal/thermal_zone0/temp 2>/dev/null || echo 'N/A')"
+echo "[SSH]  $(systemctl is-active sshd >/dev/null 2>&1 && echo 'OK' || echo 'FAIL')"
+echo "[DISK] $(df -h / | awk 'NR==2{print $5}')"
 EOF
 ```
 
 ### 仅拉取日志
 
 ```bash
-sshpass -p 'firefly' ssh firefly@192.168.8.105 'cat /tmp/timesync.log 2>/dev/null || echo "无日志文件"'
+sshpass -p '{pass}' ssh {user}@{host} 'cat /tmp/ros_node.log 2>/dev/null || echo "无日志文件"'
 ```
 
-### 在板子上交互运行（保持前台）
+### 在设备上交互运行（保持前台）
 
 ```bash
-sshpass -p 'firefly' ssh -t firefly@192.168.8.105 << 'EOF'
-source /home/firefly/ros_ws/devel/setup.bash
-roslaunch timesync timesync.launch
+sshpass -p '{pass}' ssh -t -p {port} {user}@{host} << 'EOF'
+source /home/{user}/ros_ws/devel/setup.bash
+roslaunch {package} {launch_file}
 EOF
 ```
 
-### 停止板子上的节点
+### 停止设备上的节点
 
 ```bash
-sshpass -p 'firefly' ssh firefly@192.168.8.105 'pkill -f timesync_node; echo "已停止"'
+sshpass -p '{pass}' ssh {user}@{host} 'pkill -f {nodes}; echo "已停止"'
 ```
 
-### 板子上查看 GPIO 实时信号
+### ROS bag 录制
 
 ```bash
-sshpass -p 'firefly' ssh firefly@192.168.8.105 \
-  'timeout 5 sudo gpiomon --format="%s.%n %e" gpiochip3 28 2>&1'
+sshpass -p '{pass}' ssh {user}@{host} << 'EOF'
+source /home/{user}/ros_ws/devel/setup.bash
+mkdir -p ~/bags
+rosbag record -O ~/bags/session_$(date +%Y%m%d_%H%M%S).bag {topics} __name:=rosbag_recorder &
+echo "bag 录制中, PID: $!"
+EOF
+```
+
+### 停止 ROS bag 录制
+
+```bash
+sshpass -p '{pass}' ssh {user}@{host} 'pkill -f rosbag; echo "录制已停止"'
 ```
 
 ---
