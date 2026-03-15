@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+# SessionStart hook for rk3588-skills plugin
+# Injects using-rk3588-skills entry skill into every session
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
+PLUGIN_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+
+# Read entry skill content
+entry_skill=$(cat "${PLUGIN_ROOT}/skills/using-rk3588-skills/SKILL.md" 2>&1 || echo "Error reading using-rk3588-skills skill")
+
+# Escape for JSON
+escape_for_json() {
+    local s="$1"
+    s="${s//\\/\\\\}"
+    s="${s//\"/\\\"}"
+    s="${s//$'\n'/\\n}"
+    s="${s//$'\r'/\\r}"
+    s="${s//$'\t'/\\t}"
+    printf '%s' "$s"
+}
+
+entry_escaped=$(escape_for_json "$entry_skill")
+session_context="<important-reminder>\nYou have RK3588 skills installed.\n\n**Below is your entry skill - it tells you how to use all RK3588 skills:**\n\n${entry_escaped}\n</important-reminder>"
+
+# Claude Code sets CLAUDE_PLUGIN_ROOT — emit hookSpecificOutput
+if [ -n "${CLAUDE_PLUGIN_ROOT:-}" ]; then
+  cat <<EOF
+{
+  "hookSpecificOutput": {
+    "hookEventName": "SessionStart",
+    "additionalContext": "${session_context}"
+  }
+}
+EOF
+else
+  cat <<EOF
+{
+  "additional_context": "${session_context}"
+}
+EOF
+fi
+
+exit 0

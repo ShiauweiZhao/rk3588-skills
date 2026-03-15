@@ -1,0 +1,8 @@
+# RK3588 设备连接配置
+# 复制此文件为 device.conf 并填入实际值
+# cp config/device.conf.example config/device.conf
+
+HOST=192.168.8.105
+USER=firefly
+PASS=firefly
+PORT=22

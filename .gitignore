@@ -1,1 +1,4 @@
 .DS_Store
+
+# 设备连接配置（包含密码，不入库）
+config/device.conf

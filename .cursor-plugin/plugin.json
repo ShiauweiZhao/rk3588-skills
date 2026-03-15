@@ -1,0 +1,13 @@
+{
+  "name": "rk3588-skills",
+  "displayName": "RK3588 Skills",
+  "description": "Remote development and debugging skills for RK3588 (Rockchip) boards: ROS debug loop, system diagnostics",
+  "version": "1.1.0",
+  "homepage": "https://github.com/zhaoxiaowei/rk3588-skills",
+  "repository": "https://github.com/zhaoxiaowei/rk3588-skills",
+  "license": "MIT",
+  "keywords": ["rk3588", "rockchip", "ros", "embedded", "debugging", "ssh", "remote"],
+  "skills": "./skills/",
+  "agents": "./agents/",
+  "hooks": "./hooks/hooks.json"
+}
