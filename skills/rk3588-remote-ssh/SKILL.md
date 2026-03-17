@@ -1,16 +1,22 @@
 ---
 name: rk3588-remote-ssh
-description: RK3588 远程 SSH 系统调试。当用户要求诊断 RK3588 板子系统问题、检查网络/磁盘/权限/服务/内核模块、查看设备日志、做系统健康检查、修复板子系统故障时触发。
+description: >-
+  Diagnose and resolve RK3588 board problems through remote SSH. Triggered when user reports board
+  connectivity issues, service crashes, system resource exhaustion, device access failures, boot
+  performance problems, kernel errors, or package management issues. Handles: network failures
+  (ping不通, 板子连不上), memory leaks, disk full errors, permission denied on /dev devices, slow
+  boot times, systemd service failures, dmesg error analysis, USB/serial/GPIO device issues, APT
+  dependency repair, and comprehensive system health checks. NOT for application development or NPU.
 compatibility: Requires ssh, sshpass. Designed for RK3588 (Rockchip) boards running Linux.
 license: MIT
 metadata:
-  version: "1.1.0"
+  version: "1.2.0"
   author: rk3588-skills
 ---
 
 # RK3588 远程 SSH 系统调试
 
-通过 SSH 远程诊断和修复 RK3588 板子的任何系统问题。
+通过 SSH 远程诊断和修复 RK3588 板子的系统问题。
 
 ## 设备连接
 
@@ -23,8 +29,10 @@ metadata:
 ### 连接命令模板
 
 ```bash
+# 单条命令
 sshpass -p '{pass}' ssh -o StrictHostKeyChecking=no -p {port} {user}@{host} '命令'
 
+# 多条命令（heredoc）
 sshpass -p '{pass}' ssh -p {port} {user}@{host} << 'EOF'
 命令1; 命令2
 EOF
@@ -32,9 +40,11 @@ EOF
 
 ## 诊断协议
 
-接到问题后，按 **信息收集 -> 根因定位 -> 修复 -> 验证** 四步走。
+接到问题后，按 **信息收集 → 根因定位 → 修复 → 验证** 四步走。先收集足够的系统信息再下结论，避免基于猜测做修复。
 
-### 第一步：全面信息收集
+### 全面信息收集
+
+不确定问题出在哪里时，先跑一次全面收集：
 
 ```bash
 sshpass -p '{pass}' ssh -p {port} {user}@{host} << 'EOF'
@@ -58,6 +68,25 @@ echo "=== USB ==="; lsusb 2>/dev/null
 echo "=== 内核模块 ==="; lsmod | grep -E "rk|mipi|gpu|vpu|cec|ion" || echo "无 RK 特殊模块"
 EOF
 ```
+
+## 诊断模块索引
+
+根据用户描述的问题，选择对应的模块执行。如果不确定，先跑上面的全面信息收集。
+
+| 用户症状 | 使用模块 |
+|---------|---------|
+| 板子连不上、网络不通、ping 失败 | [1. 网络](#1-网络) |
+| 磁盘满了、空间不足、写入失败 | [2. 磁盘/存储](#2-磁盘存储) |
+| 权限不足、Permission denied、无法访问设备 | [3. 权限](#3-权限) |
+| 服务挂了、启动失败、某个程序不运行 | [4. 服务管理](#4-服务管理) |
+| 串口/GPIO/USB/摄像头等设备不工作 | [5. 内核模块/设备树](#5-内核模块设备树) |
+| CPU 占用高、内存不够、系统卡顿 | [6. 进程/性能](#6-进程性能) |
+| apt 报错、依赖损坏、包安装失败 | [7. APT 包管理](#7-apt-包管理) |
+| 看系统日志、找错误原因 | [8. 日志分析](#8-日志分析) |
+| 开机慢、启动失败的服务 | [9. 开机启动/引导](#9-开机启动引导) |
+| 全面检查板子状态 | [10. 一键健康检查](#10-一键系统健康检查) |
+
+---
 
 ## 1. 网络
 
@@ -157,38 +186,13 @@ EOF
 
 ## 10. 一键系统健康检查
 
+将 `scripts/health-check.sh` 传输到板子上执行，或直接通过 SSH 内联运行：
+
 ```bash
-sshpass -p '{pass}' ssh {user}@{host} << 'EOF'
-PASS=0; WARN=0; FAIL=0
-report() { if [ "$1" = "ok" ]; then PASS=$((PASS+1)); echo "  [OK]   $2"; elif [ "$1" = "warn" ]; then WARN=$((WARN+1)); echo "  [WARN] $2"; else FAIL=$((FAIL+1)); echo "  [FAIL] $2"; fi; }
-echo "╔══════════════════════════════════════╗"
-echo "║   RK3588 系统健康检查               ║"
-echo "╚══════════════════════════════════════╝"
-echo "[网络]"
-ping -c 1 -W 2 8.8.8.8 >/dev/null 2>&1 && report ok "外网连通" || report fail "外网不通"
-ip addr show | grep -q "192.168" && report ok "局域网 IP 正常" || report warn "未检测到局域网 IP"
-echo "[存储]"
-USE=$(df / | awk 'NR==2{gsub("%","",$5); print $5}')
-[ "$USE" -lt 90 ] && report ok "根分区使用 ${USE}%" || report fail "根分区已满 ${USE}%"
-echo "[内存]"
-MEM_AVAIL=$(free | awk '/Mem:/{printf "%.0f", $7/$2*100}')
-[ "$MEM_AVAIL" -gt 15 ] && report ok "可用内存 ${MEM_AVAIL}%" || report warn "可用内存仅 ${MEM_AVAIL}%"
-echo "[温度]"
-TEMP=$(awk '{printf "%.0f", $1/1000}' /sys/class/thermal/thermal_zone0/temp 2>/dev/null || echo 999)
-[ "$TEMP" -lt 75 ] && report ok "CPU ${TEMP}C" || [ "$TEMP" -lt 85 ] && report warn "偏高 ${TEMP}C" || report fail "过热 ${TEMP}C"
-echo "[SSH]"
-systemctl is-active sshd >/dev/null 2>&1 && report ok "SSH 运行" || report fail "SSH 未运行"
-echo "[串口]"
-[ -c /dev/ttyS9 ] && report ok "ttyS9 存在" || report warn "ttyS9 不存在"
-groups {user} | grep -q dialout && report ok "dialout 权限" || report warn "无 dialout 权限"
-echo "[GPIO]"
-gpiodetect >/dev/null 2>&1 && report ok "libgpiod 可用" || report warn "libgpiod 不可用"
-groups {user} | grep -q gpio && report ok "GPIO 权限" || report warn "无 gpio 权限"
-echo "═══════════════════════════════════════"
-echo "  通过: ${PASS}  警告: ${WARN}  失败: ${FAIL}"
-echo "═══════════════════════════════════════"
-EOF
+sshpass -p '{pass}' ssh {user}@{host} 'bash -s' < scripts/health-check.sh
 ```
+
+或直接通过 SSH 远程调用（脚本已内嵌所有逻辑，会输出结构化的健康报告）。
 
 ## 修复验证汇报格式
 

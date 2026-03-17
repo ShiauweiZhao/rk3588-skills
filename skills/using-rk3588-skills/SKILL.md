@@ -1,32 +1,34 @@
 ---
 name: using-rk3588-skills
-description: Use when starting any conversation about RK3588 development, ROS debugging, or remote board management - establishes how to find and use RK3588 skills
+description: >-
+  RK3588/Rockchip ARM64 board remote operations. Use for board management, ROS deployment, debugging,
+  and diagnostics. Triggers on RK3588, Rockchip, embedded ARM64 boards, "板子" (board),
+  ROS/catkin_make/roslaunch, remote SSH, system health checks, service restart, network diagnostics,
+  driver development, cross-compilation, embedded Linux troubleshooting, or deploying to embedded boards.
 ---
 
-<EXTREMELY-IMPORTANT>
-If you are working on anything related to RK3588, ROS, or remote embedded board development, you MUST check for relevant skills before responding.
+# RK3588 Skills 使用指南
 
-IF AN RK3588 SKILL APPLIES TO YOUR TASK, YOU MUST USE IT.
-</EXTREMELY-IMPORTANT>
+本技能集帮助你通过 SSH 远程管理 RK3588 开发板，覆盖 ROS 开发调试和系统运维两大场景。
 
-# Using RK3588 Skills
+## 可用技能
 
-## Available Skills
+| 技能 | 适用场景 | 触发关键词 |
+|------|---------|-----------|
+| **rk3588-ros-debug** | 编译、部署、运行、调试 ROS 节点到板子 | catkin_make、roslaunch、部署、编译、运行节点、抓日志、topic、ROS |
+| **rk3588-remote-ssh** | 诊断板子系统问题 | 网络、磁盘、权限、服务、内核模块、日志、健康检查、温度、串口、GPIO、USB |
 
-| Skill | Trigger |
-|-------|---------|
-| **rk3588-ros-debug** | 编译/部署/运行/调试 ROS 节点到 RK3588，远程抓取 ROS 日志 |
-| **rk3588-remote-ssh** | 诊断 RK3588 系统问题（网络/磁盘/权限/服务/内核/日志） |
+**如何选择：** 如果任务涉及 ROS 编译/部署/运行 → 用 `rk3588-ros-debug`。如果是系统层面的问题（网络不通、磁盘满了、权限不对、服务挂了）→ 用 `rk3588-remote-ssh`。两者可以组合使用。
 
-## Device Connection
+## 设备连接
 
-**Before using any RK3588 skill**, read device connection info:
+所有 RK3588 技能都需要设备连接信息。按以下优先级获取：
 
-1. Project config: `config/device.conf` (in project root)
-2. Global config: `~/.config/rk3588-skills/device.conf`
-3. If neither exists, **ask the user** for IP, username, password
+1. 项目配置：`config/device.conf`（项目根目录下）
+2. 全局配置：`~/.config/rk3588-skills/device.conf`
+3. 都没有 → **向用户询问** IP、用户名、密码
 
-Config format:
+配置格式：
 ```
 HOST=192.168.8.105
 USER=firefly
@@ -34,22 +36,18 @@ PASS=firefly
 PORT=22
 ```
 
-## How to Access Skills
+## 占位符约定
 
-**In Claude Code:** Use the `Skill` tool. Never use Read on skill files.
+所有命令中的占位符（AI 执行前必须替换为实际值）：
+- `{host}` = 设备 IP 地址
+- `{user}` = SSH 用户名
+- `{pass}` = SSH 密码
+- `{port}` = SSH 端口（默认 22）
 
-**In Codex:** Skills are loaded via native skill discovery from `~/.agents/skills/`.
+## 如何访问技能
 
-**In Cursor/Gemini CLI:** Skills activate from `.cursor/skills/` or `.gemini/`.
+**Claude Code:** 使用 `Skill` 工具调用，不要直接 Read skill 文件。
 
-## Placeholder Convention
+**Codex:** 通过 `~/.agents/skills/` 原生发现。
 
-All commands use these placeholders (AI must substitute before executing):
-- `{host}` = device IP
-- `{user}` = SSH username
-- `{pass}` = SSH password
-- `{port}` = SSH port (default 22)
-
-## The Rule
-
-**Invoke relevant skills BEFORE any response or action.** Even a 1% chance a skill applies means you should check.
+**Cursor / Gemini CLI:** 从 `.cursor/skills/` 或 `.gemini/` 激活。
