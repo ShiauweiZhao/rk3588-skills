@@ -1,0 +1,9 @@
+{
+  "expectations": [
+    {"text": "使用 sshpass + ssh 命令模板连接设备", "passed": true, "evidence": "所有命令均使用 sshpass -p 'jetson' ssh jetson@192.168.1.100 格式"},
+    {"text": "提到编译→部署→运行→分析→修复的完整5步循环", "passed": true, "evidence": "创建了完整的5步任务列表，每步都有详细命令和说明"},
+    {"text": "正确填入 192.168.1.100 / jetson / jetson 作为连接参数", "passed": true, "evidence": "所有占位符均已替换为实际设备参数"},
+    {"text": "包含 catkin_make、roslaunch 等 ROS 专用命令", "passed": true, "evidence": "包含 catkin_make、roslaunch、rosnode list、rostopic hz/echo 等ROS命令"},
+    {"text": "不假设板子是 RK3588，使用通用嵌入式板子表述", "passed": true, "evidence": "标题为 'Jetson Nano ROS 编译部署调试'，未提及RK3588"}
+  ]
+}

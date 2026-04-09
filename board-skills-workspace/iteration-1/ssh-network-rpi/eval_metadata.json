@@ -1,0 +1,1 @@
+{"eval_id": 2, "eval_name": "ssh-network-rpi", "prompt": "我的树莓派 4B 板子突然 SSH 连不上了，IP 是 192.168.0.50，用户名 pi，密码 raspberry。之前一直好好的，今天突然不行了。能帮我诊断一下吗？", "assertions": []}

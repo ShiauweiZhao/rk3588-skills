@@ -1,1 +1,1 @@
-@./skills/using-rk3588-skills/SKILL.md
+@./skills/using-board-skills/SKILL.md

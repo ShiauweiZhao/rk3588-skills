@@ -1,29 +1,30 @@
 ---
-name: rk3588-remote-ssh
+name: board-remote-ssh
 description: >-
-  Diagnose and resolve RK3588 board problems through remote SSH. Triggered when user reports board
-  connectivity issues, service crashes, system resource exhaustion, device access failures, boot
+  Diagnose and resolve embedded board problems through remote SSH. Supports RK3588, Jetson,
+  Raspberry Pi, STM32MP, Allwinner, and any Linux-based embedded board. Triggered when user reports
+  board connectivity issues, service crashes, system resource exhaustion, device access failures, boot
   performance problems, kernel errors, or package management issues. Handles: network failures
   (ping不通, 板子连不上), memory leaks, disk full errors, permission denied on /dev devices, slow
   boot times, systemd service failures, dmesg error analysis, USB/serial/GPIO device issues, APT
-  dependency repair, and comprehensive system health checks. NOT for application development or NPU.
-compatibility: Requires ssh, sshpass. Designed for RK3588 (Rockchip) boards running Linux.
+  dependency repair, and comprehensive system health checks. NOT for application-level development.
+compatibility: Requires ssh, sshpass. Designed for any Linux-based embedded board (ARM, RISC-V, etc.).
 license: MIT
 metadata:
-  version: "1.2.0"
-  author: rk3588-skills
+  version: "2.0.0"
+  author: board-skills
 ---
 
-# RK3588 远程 SSH 系统调试
+# 嵌入式板子远程 SSH 系统调试
 
-通过 SSH 远程诊断和修复 RK3588 板子的系统问题。
+通过 SSH 远程诊断和修复嵌入式开发板的系统问题。支持 RK3588、Jetson、树莓派、STM32MP、全志等各类 Linux 开发板。
 
 ## 设备连接
 
 **使用此 skill 前，必须先获取设备连接信息。** 按以下优先级获取：
 
 1. 读取项目根目录下 `config/device.conf`
-2. 读取全局配置 `~/.config/rk3588-skills/device.conf`
+2. 读取全局配置 `~/.config/board-skills/device.conf`
 3. 如果配置文件均不存在，**向用户询问** IP、用户名、密码
 
 ### 连接命令模板
@@ -65,7 +66,7 @@ echo "=== 高资源进程 ==="; ps aux --sort=-%mem | head -11
 echo "=== 系统日志错误 ==="; journalctl -p err --no-pager -n 20 2>/dev/null || tail -20 /var/log/syslog 2>/dev/null
 echo "=== dmesg 错误 ==="; dmesg -T --level=err,warn 2>/dev/null | tail -20
 echo "=== USB ==="; lsusb 2>/dev/null
-echo "=== 内核模块 ==="; lsmod | grep -E "rk|mipi|gpu|vpu|cec|ion" || echo "无 RK 特殊模块"
+echo "=== 内核模块 ==="; lsmod | head -20
 EOF
 ```
 
@@ -115,7 +116,7 @@ EOF
 ```bash
 sshpass -p '{pass}' ssh {user}@{host} << 'EOF'
 id; echo ""; groups; echo ""; sudo -l 2>&1 | head -10
-ls -la /dev/ttyS9 /dev/gpiochip3 /dev/video0 2>/dev/null
+ls -la /dev/ttyS* /dev/ttyUSB* /dev/gpiochip* /dev/video* 2>/dev/null
 EOF
 ```
 修复: `sudo usermod -a -G dialout {user}` / `sudo usermod -a -G gpio {user}` + udev 规则
@@ -132,11 +133,12 @@ systemctl status $SERVICE_NAME; journalctl -u $SERVICE_NAME --no-pager -n 50
 ```bash
 sshpass -p '{pass}' ssh {user}@{host} << 'EOF'
 echo "=== 内核 ==="; uname -r
-echo "=== 模块 ==="; lsmod | grep -iE "rk|mipi|gpu|vpu|rockchip|v4l2|i2c|spi"
+echo "=== 平台 ==="; cat /sys/firmware/devicetree/base/model 2>/dev/null || echo "未知平台"
+echo "=== 模块 ==="; lsmod | grep -iE "gpu|vpu|v4l2|i2c|spi|mipi|drm" || echo "无特殊模块"
 echo "=== GPIO ==="; ls -la /dev/gpiochip* 2>/dev/null; gpiodetect 2>/dev/null
 echo "=== 串口 ==="; ls -la /dev/ttyS* /dev/ttyUSB* 2>/dev/null
 echo "=== USB ==="; lsusb
-echo "=== dmesg ==="; dmesg -T | grep -iE "rk3588|rockchip|gpio|i2c|spi|uart" | tail -30
+echo "=== dmesg 设备 ==="; dmesg -T | grep -iE "gpio|i2c|spi|uart|usb|video|drm" | tail -30
 echo "=== 设备树 ==="; ls /sys/firmware/devicetree/base/ 2>/dev/null | head -30
 EOF
 ```

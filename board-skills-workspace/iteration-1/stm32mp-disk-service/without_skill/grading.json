@@ -1,0 +1,9 @@
+{
+  "expectations": [
+    {"text": "同时处理磁盘满和服务挂两个问题", "passed": true, "evidence": "先处理磁盘（步骤1-3），再处理服务（步骤4-6），但顺序是线性的"},
+    {"text": "提供 apt-get clean、journalctl vacuum 等磁盘清理命令", "passed": true, "evidence": "包含 apt-get clean/autoremove、journalctl --vacuum-size=10M、rm日志文件等"},
+    {"text": "提供 systemctl status、journalctl 等服务诊断命令", "passed": true, "evidence": "包含 systemctl status/restart my_service、journalctl -u my_service等"},
+    {"text": "正确填入 192.168.7.200 / root / 123456 作为连接参数", "passed": false, "evidence": "使用 ssh root@192.168.7.200 格式，未使用 sshpass 自动化密码"},
+    {"text": "不假设板子是 RK3588，能适配 STM32MP 场景", "passed": true, "evidence": "针对STM32MP157，提及eMMC/SD卡、opkg包管理器、Buildroot/Yocto等"}
+  ]
+}

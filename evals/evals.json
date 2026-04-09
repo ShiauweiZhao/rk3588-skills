@@ -1,0 +1,57 @@
+{
+  "skill_name": "board-skills",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "我在 Jetson Nano 上跑 ROS 节点，板子 IP 是 192.168.1.100，用户名 jetson，密码 jetson。workspace 里的 catkin_ws 编译总是报错，帮我编译部署跑一下看看能不能正常启动。包名是 obstacle_detector，launch 文件是 detect.launch",
+      "expected_output": "应该触发 board-ros-debug skill，走完编译→部署→运行→分析的完整循环",
+      "files": [],
+      "assertions": [
+        {"name": "uses_correct_ssh_template", "description": "使用 sshpass + ssh 命令模板连接设备"},
+        {"name": "mentions_full_5_step_loop", "description": "提到编译→部署→运行→分析→修复的完整5步循环"},
+        {"name": "correct_device_params", "description": "正确填入 192.168.1.100 / jetson / jetson 作为连接参数"},
+        {"name": "includes_ros_commands", "description": "包含 catkin_make、roslaunch 等 ROS 专用命令"},
+        {"name": "board_agnostic_language", "description": "不假设板子是 RK3588，使用通用嵌入式板子表述"}
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "我的树莓派 4B 板子突然 SSH 连不上了，IP 是 192.168.0.50，用户名 pi，密码 raspberry。之前一直好好的，今天突然不行了。能帮我诊断一下吗？",
+      "expected_output": "应该触发 board-remote-ssh skill，走网络诊断模块",
+      "files": [],
+      "assertions": [
+        {"name": "structured_diagnosis_workflow", "description": "按 信息收集→根因定位→修复→验证 四步诊断协议"},
+        {"name": "network_module_selected", "description": "选择了正确的网络诊断模块（ip link、ping、DNS 等）"},
+        {"name": "correct_device_params", "description": "正确填入 192.168.0.50 / pi / raspberry 作为连接参数"},
+        {"name": "mentions_connectivity_checks", "description": "提到 ping、网线检查、USB 网卡等连通性检查"},
+        {"name": "board_agnostic_language", "description": "不假设板子是 RK3588，能适配树莓派场景"}
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "板子不知道怎么回事，好像有点问题，你帮我看看。IP 10.0.0.5 用户名 root 密码 root",
+      "expected_output": "应该触发 using-board-skills 入口 skill，走全面信息收集，引导到正确的诊断模块",
+      "files": [],
+      "assertions": [
+        {"name": "starts_with_full_info_collection", "description": "先跑全面信息收集而不是直接猜测"},
+        {"name": "correct_device_params", "description": "正确填入 10.0.0.5 / root / root 作为连接参数"},
+        {"name": "structured_approach", "description": "有结构化的诊断流程，不是随意罗列命令"},
+        {"name": "covers_multiple_dimensions", "description": "覆盖 CPU、内存、磁盘、网络、温度等多维度检查"},
+        {"name": "board_agnostic_language", "description": "不硬编码 RK3588 特定检测，适配任意板子"}
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "STM32MP157 板子上跑的 my_service 服务挂了，而且 df -h 显示根分区已经 98% 满了。板子 192.168.7.200 root/123456。帮我处理一下",
+      "expected_output": "应该触发 board-remote-ssh skill，同时处理磁盘清理和服务诊断",
+      "files": [],
+      "assertions": [
+        {"name": "handles_dual_issue", "description": "同时处理磁盘满和服务挂两个问题"},
+        {"name": "disk_cleanup_commands", "description": "提供 apt-get clean、journalctl vacuum 等磁盘清理命令"},
+        {"name": "service_diagnosis_commands", "description": "提供 systemctl status、journalctl 等服务诊断命令"},
+        {"name": "correct_device_params", "description": "正确填入 192.168.7.200 / root / 123456 作为连接参数"},
+        {"name": "board_agnostic_language", "description": "不假设板子是 RK3588，能适配 STM32MP 场景"}
+      ]
+    }
+  ]
+}

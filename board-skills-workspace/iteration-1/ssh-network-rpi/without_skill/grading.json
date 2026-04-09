@@ -1,0 +1,9 @@
+{
+  "expectations": [
+    {"text": "按 信息收集→根因定位→修复→验证 四步诊断协议", "passed": false, "evidence": "有分步排查但没有明确的四步诊断协议结构，更像是操作手册"},
+    {"text": "选择了正确的网络诊断模块（ip link、ping、DNS 等）", "passed": true, "evidence": "包含ping、nc端口扫描、ssh -vvv、arp扫描等网络诊断"},
+    {"text": "正确填入 192.168.0.50 / pi / raspberry 作为连接参数", "passed": true, "evidence": "参数使用正确"},
+    {"text": "提到 ping、网线检查、USB 网卡等连通性检查", "passed": true, "evidence": "包含ping、nmap扫描、SSH报错对照表、物理排查步骤"},
+    {"text": "不假设板子是 RK3588，能适配树莓派场景", "passed": true, "evidence": "针对树莓派4B，提及SD卡损坏、电源指示灯等树莓派特有内容"}
+  ]
+}

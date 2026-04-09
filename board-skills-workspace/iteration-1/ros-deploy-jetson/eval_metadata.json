@@ -1,0 +1,1 @@
+{"eval_id": 1, "eval_name": "ros-deploy-jetson", "prompt": "我在 Jetson Nano 上跑 ROS 节点，板子 IP 是 192.168.1.100，用户名 jetson，密码 jetson。workspace 里的 catkin_ws 编译总是报错，帮我编译部署跑一下看看能不能正常启动。包名是 obstacle_detector，launch 文件是 detect.launch", "assertions": []}

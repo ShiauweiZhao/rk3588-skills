@@ -1,0 +1,9 @@
+{
+  "expectations": [
+    {"text": "先跑全面信息收集而不是直接猜测", "passed": true, "evidence": "从ping开始，然后提供全面信息收集命令"},
+    {"text": "正确填入 10.0.0.5 / root / root 作为连接参数", "passed": true, "evidence": "使用 sshpass -p 'root' ssh root@10.0.0.5"},
+    {"text": "有结构化的诊断流程，不是随意罗列命令", "passed": true, "evidence": "有4步流程：连通性→全面收集→针对性排查→修复验证"},
+    {"text": "覆盖 CPU、内存、磁盘、网络、温度等多维度检查", "passed": true, "evidence": "覆盖内核、CPU、内存、磁盘、网络、温度、服务、进程、日志、dmesg、USB"},
+    {"text": "不硬编码 RK3588 特定检测，适配任意板子", "passed": false, "evidence": "标题写的是'RK3588 板子远程诊断方案'，尽管用户没有提到RK3588"}
+  ]
+}

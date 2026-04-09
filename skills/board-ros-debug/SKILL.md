@@ -1,20 +1,21 @@
 ---
-name: rk3588-ros-debug
+name: board-ros-debug
 description: >-
-  Use for compiling, deploying, and debugging ROS on ARM boards (RK3588, Jetson, etc.). Trigger when user
-  mentions "板子", "部署", "串口", or needs the full compile→deploy→run→verify cycle on ARM hardware.
+  Use for compiling, deploying, and debugging ROS on embedded boards (RK3588, Jetson, Raspberry Pi,
+  STM32MP, etc.). Trigger when user mentions "板子", "部署", "串口", or needs the full
+  compile→deploy→run→verify cycle on embedded hardware.
   Essential for verifying code actually runs on the device, not just building. Covers: cross-compile errors,
   deployment from dev container to board, runtime crashes, missing topics, serial port permissions,
   roslaunch/roscore failures, log analysis, and device-specific issues (disk space, port conflicts).
   Use even for "compile" requests—code that builds on x86 must be verified on ARM.
-compatibility: Requires ssh, rsync, sshpass. Designed for ARM64 Dev Container cross-compile workflow.
+compatibility: Requires ssh, rsync, sshpass. Designed for cross-compile workflow on any Linux-based embedded board.
 license: MIT
 metadata:
-  version: "1.3.0"
-  author: rk3588-skills
+  version: "2.0.0"
+  author: board-skills
 ---
 
-# RK3588 远程 ROS 开发调试循环
+# 嵌入式板子远程 ROS 开发调试循环
 
 在 Dev Container 内完成 **编译 → 部署 → 运行 → 分析 → 修复** 的完整闭环。
 
@@ -32,7 +33,7 @@ metadata:
 
 **1. 获取设备连接信息**（按优先级）：
 1. 读取项目根目录 `config/device.conf`
-2. 读取全局配置 `~/.config/rk3588-skills/device.conf`
+2. 读取全局配置 `~/.config/board-skills/device.conf`
 3. 向用户询问 IP、用户名、密码
 
 **2. 确认 ROS 项目参数**（从代码、launch 文件或用户输入获取）：

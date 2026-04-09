@@ -1,0 +1,9 @@
+{
+  "expectations": [
+    {"text": "按 信息收集→根因定位→修复→验证 四步诊断协议", "passed": true, "evidence": "明确按照四步诊断协议组织，从连通性测试到SSH服务层排查再到全面信息收集"},
+    {"text": "选择了正确的网络诊断模块（ip link、ping、DNS 等）", "passed": true, "evidence": "包含 ping、ARP扫描、SSH端口检测、sshd状态检查等网络诊断命令"},
+    {"text": "正确填入 192.168.0.50 / pi / raspberry 作为连接参数", "passed": true, "evidence": "所有命令使用 sshpass -p 'raspberry' ssh pi@192.168.0.50"},
+    {"text": "提到 ping、网线检查、USB 网卡等连通性检查", "passed": true, "evidence": "包含ping测试、本机网络检查、ARP扫描、树莓派MAC前缀识别"},
+    {"text": "不假设板子是 RK3588，能适配树莓派场景", "passed": true, "evidence": "标题明确为树莓派4B，并提及树莓派特有内容如dhcpcd.conf、电源指示灯"}
+  ]
+}

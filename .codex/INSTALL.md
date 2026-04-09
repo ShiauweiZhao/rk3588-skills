@@ -1,6 +1,6 @@
-# Installing RK3588 Skills for Codex
+# Installing Board Skills for Codex
 
-Enable RK3588 skills in Codex via native skill discovery. Clone and symlink.
+Enable Board Skills in Codex via native skill discovery. Clone and symlink.
 
 ## Prerequisites
 
@@ -11,13 +11,13 @@ Enable RK3588 skills in Codex via native skill discovery. Clone and symlink.
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/zhaoxiaowei/rk3588-skills.git ~/.codex/rk3588-skills
+   git clone https://github.com/zhaoxiaowei/rk3588-skills.git ~/.codex/board-skills
    ```
 
 2. **Create the skills symlink:**
    ```bash
    mkdir -p ~/.agents/skills
-   ln -s ~/.codex/rk3588-skills/skills ~/.agents/skills/rk3588-skills
+   ln -s ~/.codex/board-skills/skills ~/.agents/skills/board-skills
    ```
 
 3. **Restart Codex** (quit and relaunch) to discover the skills.
@@ -25,13 +25,13 @@ Enable RK3588 skills in Codex via native skill discovery. Clone and symlink.
 ## Verify
 
 ```bash
-ls -la ~/.agents/skills/rk3588-skills
+ls -la ~/.agents/skills/board-skills
 ```
 
 ## Updating
 
 ```bash
-cd ~/.codex/rk3588-skills && git pull
+cd ~/.codex/board-skills && git pull
 ```
 
 Skills update instantly through the symlink.
@@ -39,5 +39,5 @@ Skills update instantly through the symlink.
 ## Uninstalling
 
 ```bash
-rm ~/.agents/skills/rk3588-skills
+rm ~/.agents/skills/board-skills
 ```

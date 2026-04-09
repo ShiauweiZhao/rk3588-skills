@@ -1,4 +1,4 @@
-# RK3588 设备连接配置
+# 嵌入式板子设备连接配置
 # 复制此文件为 device.conf 并填入实际值
 # cp config/device.conf.example config/device.conf
 

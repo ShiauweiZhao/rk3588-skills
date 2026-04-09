@@ -1,13 +1,21 @@
 #!/bin/bash
-# RK3588 一键系统健康检查
+# Embedded Board 一键系统健康检查
 # 用法: 在 SSH 会话中直接执行，或通过 sshpass 远程调用
+# 支持 RK3588、Jetson、树莓派、STM32MP 等各类 Linux 嵌入式板子
 
 PASS=0; WARN=0; FAIL=0
 report() { if [ "$1" = "ok" ]; then PASS=$((PASS+1)); echo "  [OK]   $2"; elif [ "$1" = "warn" ]; then WARN=$((WARN+1)); echo "  [WARN] $2"; else FAIL=$((FAIL+1)); echo "  [FAIL] $2"; fi; }
 
+# 检测板子型号
+BOARD_MODEL=$(cat /sys/firmware/devicetree/base/model 2>/dev/null | tr '\0' ' ' || echo "Unknown Board")
+BOARD_ARCH=$(uname -m)
+
 echo "╔══════════════════════════════════════╗"
-echo "║   RK3588 系统健康检查               ║"
+echo "║   嵌入式板子系统健康检查             ║"
 echo "╚══════════════════════════════════════╝"
+echo "  平台: ${BOARD_MODEL}"
+echo "  架构: ${BOARD_ARCH}"
+echo ""
 
 echo "[网络]"
 ping -c 1 -W 2 8.8.8.8 >/dev/null 2>&1 && report ok "外网连通" || report fail "外网不通"
@@ -29,7 +37,8 @@ echo "[SSH]"
 systemctl is-active sshd >/dev/null 2>&1 && report ok "SSH 运行" || report fail "SSH 未运行"
 
 echo "[串口]"
-[ -c /dev/ttyS9 ] && report ok "ttyS9 存在" || report warn "ttyS9 不存在"
+TTY_DEVICES=$(ls /dev/ttyS* /dev/ttyUSB* 2>/dev/null | head -1)
+[ -n "$TTY_DEVICES" ] && report ok "串口设备存在: $(basename $TTY_DEVICES)" || report warn "未检测到串口设备"
 groups ${USER} | grep -q dialout && report ok "dialout 权限" || report warn "无 dialout 权限"
 
 echo "[GPIO]"

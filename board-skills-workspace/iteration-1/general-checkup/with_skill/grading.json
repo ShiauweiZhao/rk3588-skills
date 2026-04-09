@@ -1,0 +1,9 @@
+{
+  "expectations": [
+    {"text": "先跑全面信息收集而不是直接猜测", "passed": true, "evidence": "明确说明'问题描述比较模糊，我先跑一次全面信息收集'，直接给出完整的全面信息收集命令"},
+    {"text": "正确填入 10.0.0.5 / root / root 作为连接参数", "passed": true, "evidence": "所有命令使用 sshpass -p 'root' ssh root@10.0.0.5"},
+    {"text": "有结构化的诊断流程，不是随意罗列命令", "passed": true, "evidence": "有明确的诊断协议（信息收集→根因定位→修复→验证），包含分支流程图和后续处理表格"},
+    {"text": "覆盖 CPU、内存、磁盘、网络、温度等多维度检查", "passed": true, "evidence": "全面信息收集覆盖内核、CPU、内存、磁盘、网络、温度、服务、进程、日志、dmesg、USB、内核模块"},
+    {"text": "不硬编码 RK3588 特定检测，适配任意板子", "passed": true, "evidence": "使用通用命令，未提及RK3588/Rockchip特定模块"}
+  ]
+}

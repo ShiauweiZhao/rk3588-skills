@@ -1,0 +1,95 @@
+{
+  "skill_name": "board-skills",
+  "iteration": 1,
+  "configurations": [
+    {
+      "name": "with_skill",
+      "evals": [
+        {
+          "eval_name": "ros-deploy-jetson",
+          "pass_rate": 1.0,
+          "passed": 5,
+          "total": 5,
+          "total_tokens": 26011,
+          "duration_seconds": 107.2
+        },
+        {
+          "eval_name": "ssh-network-rpi",
+          "pass_rate": 1.0,
+          "passed": 5,
+          "total": 5,
+          "total_tokens": 27344,
+          "duration_seconds": 116.8
+        },
+        {
+          "eval_name": "general-checkup",
+          "pass_rate": 1.0,
+          "passed": 5,
+          "total": 5,
+          "total_tokens": 26914,
+          "duration_seconds": 177.9
+        },
+        {
+          "eval_name": "stm32mp-disk-service",
+          "pass_rate": 1.0,
+          "passed": 5,
+          "total": 5,
+          "total_tokens": 26823,
+          "duration_seconds": 405.3
+        }
+      ],
+      "summary": {
+        "mean_pass_rate": 1.0,
+        "mean_tokens": 26773.0,
+        "mean_duration_seconds": 201.8
+      }
+    },
+    {
+      "name": "without_skill",
+      "evals": [
+        {
+          "eval_name": "ros-deploy-jetson",
+          "pass_rate": 0.6,
+          "passed": 3,
+          "total": 5,
+          "total_tokens": 24888,
+          "duration_seconds": 112.6
+        },
+        {
+          "eval_name": "ssh-network-rpi",
+          "pass_rate": 0.8,
+          "passed": 4,
+          "total": 5,
+          "total_tokens": 24186,
+          "duration_seconds": 102.9
+        },
+        {
+          "eval_name": "general-checkup",
+          "pass_rate": 0.8,
+          "passed": 4,
+          "total": 5,
+          "total_tokens": 28367,
+          "duration_seconds": 591.7
+        },
+        {
+          "eval_name": "stm32mp-disk-service",
+          "pass_rate": 0.8,
+          "passed": 4,
+          "total": 5,
+          "total_tokens": 24576,
+          "duration_seconds": 111.8
+        }
+      ],
+      "summary": {
+        "mean_pass_rate": 0.75,
+        "mean_tokens": 25504.25,
+        "mean_duration_seconds": 229.75
+      }
+    }
+  ],
+  "delta": {
+    "pass_rate": 0.25,
+    "tokens": 1268.75,
+    "duration_seconds": -27.95
+  }
+}

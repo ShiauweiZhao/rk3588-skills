@@ -1,0 +1,1 @@
+{"eval_id": 4, "eval_name": "stm32mp-disk-service", "prompt": "STM32MP157 板子上跑的 my_service 服务挂了，而且 df -h 显示根分区已经 98% 满了。板子 192.168.7.200 root/123456。帮我处理一下", "assertions": []}
